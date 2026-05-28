@@ -26,6 +26,11 @@ export default function App() {
     setOnlyInStock(false);
   }, [activeView]);
 
+  // Keep the top of the page visible when switching views
+  useEffect(() => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }, [activeView]);
+
   // Cart operations
   const handleAddToCart = (product) => {
     setCartItems(prev => {

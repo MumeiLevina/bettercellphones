@@ -3,14 +3,57 @@ import { ShoppingCart, Search, Cpu, Bot, Laptop, Smartphone, Keyboard, Flame, Me
 
 export default function Navbar({ activeView, setActiveView, cartItemsCount, toggleCart, searchQuery, setSearchQuery }) {
   const [mobileMenuOpen, setMobileMenuOpen] = React.useState(false);
-
-  const navItems = [
+  const navItems = React.useMemo(() => [
     { id: 'deals', label: 'Khuyến Mãi', icon: Flame },
     { id: 'laptop', label: 'Laptop', icon: Laptop },
     { id: 'điện thoại', label: 'Điện Thoại', icon: Smartphone },
     { id: 'gaming gear', label: 'Gaming Gear', icon: Keyboard },
     { id: 'linh kiện', label: 'Linh Kiện', icon: Cpu },
-  ];
+  ], []);
+  const navButtonRefs = React.useRef([]);
+  const [navIndicator, setNavIndicator] = React.useState({ left: 0, width: 0, top: 0, height: 0, opacity: 0 });
+
+  const updateIndicator = React.useCallback(() => {
+    const activeIndex = navItems.findIndex((item) => item.id === activeView);
+    const activeButton = navButtonRefs.current[activeIndex];
+    const navList = activeButton?.closest('ul');
+
+    if (!activeButton || !navList) {
+      setNavIndicator((prev) => (prev.opacity === 0 ? prev : { ...prev, opacity: 0 }));
+      return;
+    }
+
+    const listRect = navList.getBoundingClientRect();
+    const buttonRect = activeButton.getBoundingClientRect();
+
+    const nextIndicator = {
+      left: buttonRect.left - listRect.left,
+      width: buttonRect.width,
+      top: buttonRect.top - listRect.top,
+      height: buttonRect.height,
+      opacity: 1
+    };
+
+    setNavIndicator((prev) => {
+      const isSame =
+        prev.left === nextIndicator.left &&
+        prev.width === nextIndicator.width &&
+        prev.top === nextIndicator.top &&
+        prev.height === nextIndicator.height &&
+        prev.opacity === nextIndicator.opacity;
+
+      return isSame ? prev : nextIndicator;
+    });
+  }, [activeView, navItems]);
+
+  React.useLayoutEffect(() => {
+    updateIndicator();
+  }, [activeView, updateIndicator]);
+
+  React.useEffect(() => {
+    window.addEventListener('resize', updateIndicator);
+    return () => window.removeEventListener('resize', updateIndicator);
+  }, [updateIndicator]);
 
   const handleNavClick = (viewId) => {
     setActiveView(viewId);
@@ -79,27 +122,50 @@ export default function Navbar({ activeView, setActiveView, cartItemsCount, togg
         </div>
 
         {/* Desktop Navigation */}
-        <nav style={{ display: 'none' }} className="desktop-nav">
+        <nav style={{ display: 'none', position: 'relative' }} className="desktop-nav">
           <ul style={{
             display: 'flex',
             listStyle: 'none',
-            gap: '6px'
+            gap: '6px',
+            position: 'relative'
           }}>
-            {navItems.map((item) => {
+            <span
+              aria-hidden="true"
+              style={{
+                position: 'absolute',
+                left: navIndicator.left,
+                top: navIndicator.top,
+                width: navIndicator.width,
+                height: navIndicator.height,
+                background: 'rgba(0, 123, 255, 0.15)',
+                border: '1px solid rgba(0, 123, 255, 0.3)',
+                borderRadius: 'var(--rounded-md)',
+                transition: 'all 260ms ease',
+                opacity: navIndicator.opacity,
+                pointerEvents: 'none'
+              }}
+            />
+            {navItems.map((item, index) => {
               const Icon = item.icon;
               const isActive = activeView === item.id;
               return (
                 <li key={item.id}>
                   <button
+                    ref={(element) => {
+                      navButtonRefs.current[index] = element;
+                    }}
                     onClick={() => handleNavClick(item.id)}
                     className="btn btn-ghost"
                     style={{
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
+                      whiteSpace: 'nowrap',
+                      position: 'relative',
+                      zIndex: 1,
                       color: isActive ? '#ffffff' : 'var(--color-on-surface-variant)',
-                      background: isActive ? 'rgba(0, 123, 255, 0.15)' : 'transparent',
-                      border: isActive ? '1px solid rgba(0, 123, 255, 0.3)' : '1px solid transparent',
+                      background: 'transparent',
+                      border: '1px solid transparent',
                       padding: '8px 14px',
                       borderRadius: 'var(--rounded-md)'
                     }}
@@ -155,12 +221,13 @@ export default function Navbar({ activeView, setActiveView, cartItemsCount, togg
               alignItems: 'center',
               gap: '8px',
               fontSize: '13px',
+              whiteSpace: 'nowrap',
               padding: '8px 16px',
               borderRadius: 'var(--rounded-md)'
             }}
           >
             <Cpu size={16} />
-            <span className="hide-mobile">Xây Dựng Cấu Hình</span>
+            <span className="hide-mobile" style={{ whiteSpace: 'nowrap' }}>Xây Dựng Cấu Hình</span>
             <span className="show-mobile">Build PC</span>
           </button>
 
@@ -173,13 +240,14 @@ export default function Navbar({ activeView, setActiveView, cartItemsCount, togg
               alignItems: 'center',
               gap: '8px',
               fontSize: '13px',
+              whiteSpace: 'nowrap',
               padding: '8px 16px',
               borderRadius: 'var(--rounded-md)',
               borderColor: activeView === 'ai-advisor' ? 'transparent' : 'rgba(0, 123, 255, 0.4)'
             }}
           >
             <Bot size={16} color={activeView === 'ai-advisor' ? '#fff' : 'var(--color-primary-dim)'} />
-            <span className="hide-mobile">Cố Vấn AI</span>
+            <span className="hide-mobile" style={{ whiteSpace: 'nowrap' }}>Cố Vấn AI</span>
             <span className="show-mobile">AI Advisor</span>
           </button>
 
